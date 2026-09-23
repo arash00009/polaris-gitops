@@ -1,5 +1,9 @@
-# environments/staging/image.yaml — same purpose as ../dev/image.yaml, for polaris-staging.
-# Placeholder until the first: make gitops-bump-staging [GITOPS_DIR=...] [ARGS=--push]
+# environments/staging/image.yaml — the only field this Application source contributes (see
+# apps/staging-app.yaml): helm/ai-platform/values.yaml deliberately has no default image.tag
+# (ADR-19), so Argo CD supplies it from here instead of a human running 'helm --set
+# image.tag=...' by hand. Written by scripts/gitops/bump-image-tag.sh in polaris-ai-platform —
+# do not hand-edit the tag without also running 'make image-build && make image-push' there, or
+# Argo CD will sync to an image that does not exist in the local registry.
 image:
-  repository: ""
-  tag: ""
+  repository: registry.localhost:5000/polaris/ai-service
+  tag: "0.3.0-4bfb403b6c4f"
