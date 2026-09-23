@@ -6,4 +6,4 @@
 # Argo CD will sync to an image that does not exist in the local registry.
 image:
   repository: registry.localhost:5000/polaris/ai-service
-  tag: "0.3.0-4bfb403b6c4f"
+  tag: "0.3.0-09ba536a9584"
