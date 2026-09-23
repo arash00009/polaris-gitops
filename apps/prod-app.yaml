@@ -1,0 +1,45 @@
+# apps/prod-app.yaml — same pattern as apps/dev-app.yaml and apps/staging-app.yaml, for
+# polaris-prod, with one deliberate difference: no syncPolicy.automated.
+#
+# docs/architecture.md's promotion table calls for prod to be reached "via PR with manual
+# approval". This project has no CD system that gates a merge on a human's approval click, so the
+# honest, working equivalent built here is Argo CD's own manual-sync mode: a merge to this
+# repository's main branch updates prod's *desired* state immediately and Argo CD marks the
+# Application OutOfSync (visible via `make argocd-status`), but nothing is actually applied to
+# the cluster until someone explicitly triggers a sync. That is the approval step. See
+# polaris-ai-platform/docs/adr/README.md ADR-26 for the honest caveat: this substitutes "requires
+# a manual action" for "requires a reviewed manual action" — a real production promotion gate
+# would still need a person or a policy actually reviewing the diff, which nothing here enforces.
+#
+# To sync prod once it is OutOfSync, without installing the argocd CLI (ADR-26):
+#   kubectl --context k3d-polaris -n argocd patch application ai-platform-prod --type merge \
+#     -p '{"operation":{"sync":{"revision":"HEAD","prune":true}}}'
+# (or, exploratory only: kubectl -n argocd port-forward svc/argocd-server 8080:443, open
+# https://localhost:8080, log in with `make argocd-password`, and click Sync — see the Phase 8
+# guide.)
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-platform-prod
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/arash00009/polaris-ai-platform.git
+      targetRevision: main
+      path: helm/ai-platform
+      helm:
+        valueFiles:
+          - values-prod.yaml
+          - $values/environments/prod/image.yaml
+    - repoURL: https://github.com/arash00009/polaris-gitops.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: polaris-prod
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=false

@@ -1,0 +1,35 @@
+# bootstrap/root-app.yaml — Phase 8's "app of apps" root.
+#
+# This is the one and only manifest a human ever applies by hand with kubectl in this whole
+# GitOps flow (scripts/gitops/bootstrap.sh / `make gitops-bootstrap` in polaris-ai-platform).
+# Its own source is this repository's apps/ directory: once it exists, Argo CD reads
+# apps/dev-app.yaml, apps/staging-app.yaml and apps/prod-app.yaml from here on its own, on every
+# poll (default: every 3 minutes) and on every push-triggered refresh — nothing about adding,
+# removing or changing an environment's Application ever needs another `kubectl apply` again.
+# See polaris-ai-platform/docs/architecture.md (Phase 8 GitOps flow) and
+# polaris-ai-platform/docs/adr/README.md ADR-26.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: polaris-root
+  namespace: argocd
+  # Ties this Application's own lifecycle to Argo CD's finalizer so `kubectl delete -f
+  # bootstrap/root-app.yaml` cleanly cascades (and so an accidental `kubectl delete application
+  # --all` in the argocd namespace does not orphan it silently).
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/arash00009/polaris-gitops.git
+    targetRevision: main
+    path: apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

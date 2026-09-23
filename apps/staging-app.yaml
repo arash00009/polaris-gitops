@@ -1,0 +1,35 @@
+# apps/staging-app.yaml — same pattern as apps/dev-app.yaml, for polaris-staging.
+#
+# Also automated: per docs/architecture.md's promotion table, staging is reached "via PR after
+# verification" — the review gate is the pull request into this repository's main branch, not a
+# second manual sync step on top of that. Once that PR is merged, staging should reflect it
+# without a human also having to remember to click sync (ADR-26).
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-platform-staging
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/arash00009/polaris-ai-platform.git
+      targetRevision: main
+      path: helm/ai-platform
+      helm:
+        valueFiles:
+          - values-staging.yaml
+          - $values/environments/staging/image.yaml
+    - repoURL: https://github.com/arash00009/polaris-gitops.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: polaris-staging
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false

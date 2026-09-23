@@ -1,0 +1,47 @@
+# apps/dev-app.yaml — the ai-platform application for polaris-dev.
+#
+# Multi-source Helm Application (Argo CD's `sources` list, not the older single-`source` form):
+# source 1 renders polaris-ai-platform's helm/ai-platform chart with its own dev values file,
+# plus one more values file supplied by source 2 — this repository itself, aliased `ref: values`
+# — so this repository never has to duplicate the chart's environment shape (replica count,
+# resources, probes, ...), only the one thing that actually changes on every build: the image
+# tag. See environments/dev/image.yaml and polaris-ai-platform/helm/ai-platform/values.yaml
+# (image.tag has no default on purpose, ADR-19) and docs/adr/README.md ADR-26 in
+# polaris-ai-platform for the full reasoning.
+#
+# syncPolicy.automated here matches docs/architecture.md's promotion table: dev is the
+# "automatic" stage. selfHeal: true also makes this the demonstration Application for the
+# architecture doc's explicit "self-heal (Phase 8/19)" callout — see the Phase 8 guide's
+# self-heal step.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-platform-dev
+  namespace: argocd
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  sources:
+    - repoURL: https://github.com/arash00009/polaris-ai-platform.git
+      targetRevision: main
+      path: helm/ai-platform
+      helm:
+        valueFiles:
+          - values-dev.yaml
+          - $values/environments/dev/image.yaml
+    - repoURL: https://github.com/arash00009/polaris-gitops.git
+      targetRevision: main
+      ref: values
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: polaris-dev
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      # The chart's own templates/namespace.yaml creates and owns polaris-dev (with
+      # helm.sh/resource-policy: keep — see ADR-23), so Argo CD must not also try to create or
+      # adopt it; that would fight Helm for ownership of the same object.
+      - CreateNamespace=false

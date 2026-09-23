@@ -1,0 +1,5 @@
+# environments/staging/image.yaml — same purpose as ../dev/image.yaml, for polaris-staging.
+# Placeholder until the first: make gitops-bump-staging [GITOPS_DIR=...] [ARGS=--push]
+image:
+  repository: ""
+  tag: ""

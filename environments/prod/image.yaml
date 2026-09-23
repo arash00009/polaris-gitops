@@ -1,0 +1,8 @@
+# environments/prod/image.yaml — same purpose as ../dev/image.yaml, for polaris-prod.
+# Placeholder until the first: make gitops-bump-prod [GITOPS_DIR=...] [ARGS=--push]
+# Remember: prod's Application (../../apps/prod-app.yaml) has no automated sync policy, so
+# pushing a new tag here updates the desired state but never applies itself — see that file's
+# header comment for the manual-sync command.
+image:
+  repository: ""
+  tag: ""
