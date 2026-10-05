@@ -36,6 +36,23 @@ spec:
   destination:
     server: https://kubernetes.default.svc
     namespace: polaris-dev
+  # Phase 12: the ai-gateway-api-keys Secret's real content is applied directly with
+  # `helm --set-file` outside of GitOps on purpose (see polaris-ai-platform's ADR-30 and
+  # docs/gateway.md section 2.4/7) -- Argo CD's own render of this chart only ever sees the
+  # "{}" placeholder from values.yaml's default, never the real key/tenant map (which must
+  # never reach this repository in cleartext). Without this entry, selfHeal: true below would
+  # revert that Secret's real content back to "{}" on every reconciliation -- every /v1/chat
+  # request would start 401ing again a few seconds after each sync, with no error anywhere to
+  # explain why. /data is what to ignore, not /stringData: Kubernetes itself normalizes a
+  # Secret's stringData into data at write time, and that is the field Argo CD actually diffs
+  # live vs. desired on.
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: ai-gateway-api-keys
+      namespace: polaris-dev
+      jsonPointers:
+        - /data
   syncPolicy:
     automated:
       prune: true
