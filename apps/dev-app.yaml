@@ -43,9 +43,13 @@ spec:
   # never reach this repository in cleartext). Without this entry, selfHeal: true below would
   # revert that Secret's real content back to "{}" on every reconciliation -- every /v1/chat
   # request would start 401ing again a few seconds after each sync, with no error anywhere to
-  # explain why. /data is what to ignore, not /stringData: Kubernetes itself normalizes a
-  # Secret's stringData into data at write time, and that is the field Argo CD actually diffs
-  # live vs. desired on.
+  # explain why. Both /data and /stringData are listed: this chart's gateway-secret.yaml
+  # template renders `stringData` (never `data`), but the live object in the cluster only ever
+  # has `data` (Kubernetes converts stringData -> data at write time and drops stringData
+  # entirely). A first real attempt here ignored only /data and it did nothing -- Argo CD's
+  # sync still overwrote the live Secret back to the "{}" placeholder, because the rendered
+  # target manifest has no /data key for that ignore rule to match against. Confirmed on a
+  # real cluster (Phase 12) -- see docs/troubleshooting.md.
   ignoreDifferences:
     - group: ""
       kind: Secret
@@ -53,6 +57,7 @@ spec:
       namespace: polaris-dev
       jsonPointers:
         - /data
+        - /stringData
   syncPolicy:
     automated:
       prune: true
