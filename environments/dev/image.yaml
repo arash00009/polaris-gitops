@@ -8,7 +8,7 @@
 # only appears for an environment whose chart values turn gateway.enabled on.
 image:
   repository: registry.localhost:5000/polaris/ai-service
-  tag: "0.4.0-c40aabea1258"
+  tag: "0.4.0-c40aabea1258-phase19-fault-injected-does-not-exist"
 gateway:
   image:
     repository: registry.localhost:5000/polaris/ai-gateway
